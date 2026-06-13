@@ -61,6 +61,13 @@ const SMYS = { "X-52": 52, "X-56": 56, "X-60": 60, "X-65": 65, "X-70": 70, "X-80
 const fmt3 = (v) => (isFinite(v) ? Number(v).toFixed(3) : "—");
 const roundUp3 = (v) => Math.ceil(v * 1000) / 1000;
 
+/* quantity formatting — display with thousands separators, store/parse raw digits */
+const onlyDigits = (v) => String(v).replace(/[^0-9]/g, "");
+const withCommas = (v) => {
+  const d = onlyDigits(v);
+  return d ? Number(d).toLocaleString("en-US") : "";
+};
+
 /* Barlow: ROUNDUP((MAOP*OD)/(2*SMYS*1000*DF),3) */
 const barlowWT = (maop, od, grade, df) => {
   const s = SMYS[grade];
@@ -347,7 +354,7 @@ export default function App() {
 
   const addToSchedule = () => {
     const nextNo = rows.length ? Math.max(...rows.map((r) => r.no)) + 1 : 1;
-    setRows((r) => [...r, { id: Date.now() + Math.random(), no: nextNo, qty: Math.max(1, parseInt(qty) || 1), type: cat.label.toUpperCase(), text: desc.text }]);
+    setRows((r) => [...r, { id: Date.now() + Math.random(), no: nextNo, qty: Math.max(1, parseInt(onlyDigits(qty)) || 1), type: cat.label.toUpperCase(), text: desc.text }]);
     setFlash(desc.text);
     setTimeout(() => setFlash(null), 1800);
   };
@@ -502,7 +509,7 @@ export default function App() {
           <div className="submit-row">
             <label className="qty-field">
               <span className="field-label">Qty</span>
-              <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} />
+              <input type="text" inputMode="numeric" value={withCommas(qty)} onChange={(e) => setQty(onlyDigits(e.target.value))} />
             </label>
             <button className="btn-primary" onClick={addToSchedule}>Add to list →</button>
           </div>
@@ -541,8 +548,8 @@ export default function App() {
                         onChange={(e) => updateRow(r.id, { no: parseInt(e.target.value) || 0 })} />
                     </td>
                     <td className="col-qty">
-                      <input className="no-input" type="number" min="1" value={r.qty}
-                        onChange={(e) => updateRow(r.id, { qty: parseInt(e.target.value) || 1 })} />
+                      <input className="no-input qty-input" type="text" inputMode="numeric" value={withCommas(r.qty)}
+                        onChange={(e) => updateRow(r.id, { qty: Math.max(1, parseInt(onlyDigits(e.target.value)) || 1) })} />
                     </td>
                     <td>
                       <div className="row-type">{r.type}</div>
@@ -614,7 +621,7 @@ const CSS = `
 .preview-text{font-family:'IBM Plex Mono';font-size:13.5px;line-height:1.55;color:#f2f6f8;word-break:break-word}
 
 .submit-row{display:flex;gap:10px;margin-top:14px;align-items:flex-end}
-.qty-field{display:flex;flex-direction:column;gap:3px;width:80px}
+.qty-field{display:flex;flex-direction:column;gap:3px;width:128px}
 .btn-primary{flex:1;font:inherit;font-weight:700;font-size:15px;letter-spacing:.03em;background:var(--safety);color:#fff;border:none;border-radius:6px;padding:11px;cursor:pointer}
 .btn-primary:hover{background:var(--safety-dark)}
 .flash{margin-top:8px;font-size:12px;color:var(--ok);font-family:'IBM Plex Mono'}
@@ -631,8 +638,9 @@ const CSS = `
 .sched{width:100%;border-collapse:collapse;margin-top:12px}
 .sched th{font-family:'Barlow Condensed';font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);text-align:left;padding:6px 8px;border-bottom:2px solid var(--steel)}
 .sched td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-.col-no{width:64px}.col-qty{width:64px}.col-x{width:36px}
+.col-no{width:64px}.col-qty{width:108px}.col-x{width:36px}
 .no-input{width:56px;font-family:'IBM Plex Mono';font-size:13px;padding:5px 6px;border:1px solid var(--line);border-radius:4px;text-align:center}
+.qty-input{width:96px;text-align:right}
 .row-type{font-size:10px;letter-spacing:.12em;color:var(--safety-dark);font-weight:700;margin-bottom:2px}
 .row-text{font-family:'IBM Plex Mono';font-size:13px;line-height:1.5;word-break:break-word}
 .del{border:none;background:none;color:var(--ink-2);font-size:14px;cursor:pointer;padding:4px;border-radius:4px}
