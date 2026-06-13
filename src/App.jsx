@@ -37,7 +37,6 @@ const L = {
   ASSEMBLY_TYPE: ["MAINLINE VALVE", "LAUNCHER", "RECEIVER"],
   BUOYANCY_TYPE: ["SET-ON CONCRETE WEIGHT", "BOLT-ON CONCRETE WEIGHT", "CONTINUOUS CONCRETE COATING", "GEOTEXTILE WEIGHT BAG", "SCREW ANCHOR SET"],
   CPTS_STYLE: ["ABOVE GRADE POST", "FLUSH MOUNT", "POLE MOUNT"],
-  CPTS_WIRES: ["2-WIRE", "4-WIRE", "6-WIRE"],
   RIBBON_SIZE: [`1/2${IN} X 9/16${IN}`, `5/8${IN} X 7/8${IN}`, `1${IN} X 1-1/4${IN}`],
   DECOUPLER_MOUNT: ["DIRECT BURIAL", "ABOVE GRADE"],
   DECOUPLER_RATING: ["1.2KA", "3.7KA", "5KA", "10KA"],
@@ -238,31 +237,37 @@ const CATALOG = {
   BUOYANCY: {
     label: "Buoyancy control",
     group: "Field materials",
-    defaults: { size: "42", type: "SET-ON CONCRETE WEIGHT" },
+    defaults: { type: "GEOTEXTILE WEIGHT BAG", spacing: "12.5" },
     fields: [
-      { k: "size", label: "Pipe size (in)", type: "select", opts: L.PIPE_SIZE.map(String) },
       { k: "type", label: "Type", type: "select", opts: L.BUOYANCY_TYPE },
+      { k: "spacing", label: "Spacing (ft)", type: "number", step: "0.5" },
     ],
-    describe: (v) => ({ text: `BUOYANCY CONTROL, ${v.size}${IN} OD, ${v.type}` }),
+    describe: (v) => ({ text: `BUOYANCY CONTROL, ${v.type} @ ${v.spacing}' SPACING` }),
   },
 
   CPTS: {
     label: "CP test station",
     group: "Field materials",
-    defaults: { style: "ABOVE GRADE POST", wires: "4-WIRE" },
+    defaults: { style: "ABOVE GRADE POST", wires: "4" },
     fields: [
       { k: "style", label: "Style", type: "select", opts: L.CPTS_STYLE },
-      { k: "wires", label: "Wires", type: "select", opts: L.CPTS_WIRES },
+      { k: "wires", label: "Number of wires", type: "number", min: "1", max: "11" },
     ],
-    describe: (v) => ({ text: `CP TEST STATION, ${v.style}, ${v.wires}` }),
+    describe: (v) => {
+      const n = Math.min(11, Math.max(1, parseInt(v.wires) || 1));
+      return { text: `CP TEST STATION, ${v.style}, ${n}-WIRE` };
+    },
   },
 
   AC_RIBBON: {
     label: "AC mitigation ribbon",
     group: "Field materials",
-    defaults: { size: L.RIBBON_SIZE[1] },
-    fields: [{ k: "size", label: "Ribbon size", type: "select", opts: L.RIBBON_SIZE }],
-    describe: (v) => ({ text: `AC MITIGATION, ZINC RIBBON ANODE, ${v.size}` }),
+    defaults: { material: "ZINC RIBBON", size: L.RIBBON_SIZE[1] },
+    fields: [
+      { k: "material", label: "Material", type: "text" },
+      { k: "size", label: "Ribbon size", type: "select", opts: L.RIBBON_SIZE },
+    ],
+    describe: (v) => ({ text: `AC MITIGATION, ${(v.material || "ZINC RIBBON").toUpperCase()} ANODE, ${v.size}` }),
   },
 
   AC_DECOUPLER: {
@@ -360,7 +365,7 @@ export default function App() {
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "material-schedule.csv";
+    a.download = "material-list.csv";
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -379,7 +384,7 @@ export default function App() {
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "material-schedule.json";
+    a.download = "material-list.json";
     a.click();
     URL.revokeObjectURL(a.href);
   };
@@ -405,9 +410,9 @@ export default function App() {
           }));
         if (!cleaned.length) throw new Error("empty");
         setRows(cleaned);
-        setLoadMsg({ tone: "ok", msg: `Loaded ${cleaned.length} item${cleaned.length === 1 ? "" : "s"} from ${file.name} — replaced the current schedule` });
+        setLoadMsg({ tone: "ok", msg: `Loaded ${cleaned.length} item${cleaned.length === 1 ? "" : "s"} from ${file.name} — replaced the current list` });
       } catch {
-        setLoadMsg({ tone: "err", msg: `Couldn't read ${file.name} — choose a schedule saved from this tool (.json)` });
+        setLoadMsg({ tone: "err", msg: `Couldn't read ${file.name} — choose a list saved from this tool (.json)` });
       }
       setTimeout(() => setLoadMsg(null), 5000);
     };
@@ -426,14 +431,14 @@ export default function App() {
         <div className="hdr-mark">PMDT</div>
         <div>
           <h1>Pipeline Material Description Tool</h1>
-          <div className="hdr-sub">rev 5E</div>
+          <div className="hdr-sub">rev 6</div>
         </div>
-        <div className="hdr-count">{rows.length} item{rows.length === 1 ? "" : "s"} in schedule</div>
+        <div className="hdr-count">{rows.length} item{rows.length === 1 ? "" : "s"} in list</div>
       </header>
 
       <nav className="tabs">
         <button className={view === "input" ? "on" : ""} onClick={() => setView("input")}>1 · Material input</button>
-        <button className={view === "schedule" ? "on" : ""} onClick={() => setView("schedule")}>2 · Material schedule {rows.length > 0 && <span className="pill">{rows.length}</span>}</button>
+        <button className={view === "schedule" ? "on" : ""} onClick={() => setView("schedule")}>2 · Material list {rows.length > 0 && <span className="pill">{rows.length}</span>}</button>
       </nav>
 
       <main className={`cols view-${view}`}>
@@ -465,7 +470,7 @@ export default function App() {
                       {opts.map((o) => <option key={o} value={o}>{o}</option>)}
                     </select>
                   ) : (
-                    <input type={f.type} step={f.step} value={values[f.k]} placeholder={f.hint ? "auto" : ""} onChange={(e) => setVal(f.k, e.target.value)} />
+                    <input type={f.type} step={f.step} min={f.min} max={f.max} value={values[f.k]} placeholder={f.hint ? "auto" : ""} onChange={(e) => setVal(f.k, e.target.value)} />
                   )}
                   {f.hint && <span className="field-hint">{f.hint}</span>}
                 </label>
@@ -499,7 +504,7 @@ export default function App() {
               <span className="field-label">Qty</span>
               <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} />
             </label>
-            <button className="btn-primary" onClick={addToSchedule}>Add to schedule →</button>
+            <button className="btn-primary" onClick={addToSchedule}>Add to list →</button>
           </div>
           {flash && <div className="flash">Added: {flash.slice(0, 60)}{flash.length > 60 ? "…" : ""}</div>}
         </section>
@@ -507,10 +512,10 @@ export default function App() {
         {/* ---------------- SCHEDULE ---------------- */}
         <section className="panel sched-panel">
           <div className="sched-head">
-            <h2 className="panel-title">Material schedule</h2>
+            <h2 className="panel-title">Material list</h2>
             <div className="sched-actions">
-              <button className="btn-ghost" onClick={saveJSON} disabled={!rows.length}>Save schedule</button>
-              <button className="btn-ghost" onClick={() => fileRef.current && fileRef.current.click()}>Load schedule</button>
+              <button className="btn-ghost" onClick={saveJSON} disabled={!rows.length}>Save list</button>
+              <button className="btn-ghost" onClick={() => fileRef.current && fileRef.current.click()}>Load list</button>
               <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={loadJSON} />
               <button className="btn-ghost" onClick={renumber} disabled={!rows.length}>Renumber 1–{rows.length || "n"}</button>
               <button className="btn-ghost" onClick={exportCSV} disabled={!rows.length}>Export CSV</button>
@@ -521,7 +526,7 @@ export default function App() {
 
           {rows.length === 0 ? (
             <div className="empty">
-              No materials yet. Build a description on the input page and select <strong>Add to schedule</strong> — items are numbered automatically and the numbers stay editable here.
+              No materials yet. Build a description on the input page and select <strong>Add to list</strong> — items are numbered automatically and the numbers stay editable here.
             </div>
           ) : (
             <table className="sched">
