@@ -315,6 +315,65 @@ const CATALOG = {
 
 const GROUPS = ["Line pipe", "Fittings", "Valves & assemblies", "Field materials"];
 
+/* ---- structured columns for CSV export (computed at add-time) ---- */
+const cstr = (t, ty) => (t && t !== "NONE" && ty && ty !== "NONE" ? `${t} ${ty}` : "");
+const pipeCoat = (v) => {
+  const parts = [];
+  const a = cstr(v.c1t, v.c1ty); if (a) parts.push(a);
+  const b = cstr(v.c2t, v.c2ty); if (b) parts.push(b);
+  if (v.int && v.int !== "NONE") parts.push(`${v.int} INT`);
+  return parts.join(" + ");
+};
+
+function buildCols(key, v, desc) {
+  const c = { size: "", material: "", wt: "", cls: "", standard: "", ends: "", coating: "" };
+  switch (key) {
+    case "PIPE": {
+      const wt = v.wtOverride !== "" ? +v.wtOverride : (desc && desc.calcWT);
+      c.size = `${v.size}${IN} OD`;
+      c.material = v.grade;
+      c.wt = isFinite(wt) ? `${fmt3(wt)}${IN}` : "";
+      c.standard = `${v.std1} ${v.std2}`;
+      c.coating = pipeCoat(v);
+      break;
+    }
+    case "BEND":
+      c.size = `${v.size}${IN} OD`; c.material = v.mat; c.wt = `${fmt3(+v.wt)}${IN}`;
+      c.standard = v.std; c.ends = v.ends; c.coating = cstr(v.ct, v.cty);
+      break;
+    case "TEE":
+      c.size = `${v.run}${IN} x ${v.branch}${IN}`; c.material = v.mat; c.wt = `${fmt3(+v.wt)}${IN}`;
+      c.standard = v.std; c.ends = v.ends; c.coating = cstr(v.ct, v.cty);
+      break;
+    case "REDUCER":
+      c.size = `${v.large}${IN} x ${v.small}${IN}`; c.material = v.mat; c.wt = `${fmt3(+v.wt)}${IN}`;
+      c.standard = v.std; c.ends = v.ends; c.coating = cstr(v.ct, v.cty);
+      break;
+    case "FLANGE":
+      c.size = `${v.size}${IN}`; c.material = v.mat; c.cls = v.cls;
+      c.standard = v.std; c.ends = v.face; c.coating = cstr(v.ct, v.cty);
+      break;
+    case "VALVE":
+      c.size = `${v.size}${IN}`; c.cls = v.cls; c.ends = `${v.e1}x${v.e2}`;
+      break;
+    case "ASSEMBLY":
+      c.cls = v.cls;
+      break;
+    case "AC_RIBBON":
+      c.size = v.size; c.material = (v.material || "ZINC RIBBON").toUpperCase();
+      break;
+    case "ANODE_BED":
+      c.material = v.anode;
+      break;
+    case "GROUND_ROD":
+      c.material = v.mat; c.size = `${v.dia} x ${v.len}`;
+      break;
+    default:
+      break; // BUOYANCY, CPTS, AC_DECOUPLER — no common attributes; type + description carry them
+  }
+  return c;
+}
+
 /* =========================================================
    App
    ========================================================= */
@@ -371,7 +430,7 @@ export default function App() {
 
   const addToSchedule = () => {
     const nextNo = rows.length ? Math.max(...rows.map((r) => r.no)) + 1 : 1;
-    setRows((r) => [...r, { id: Date.now() + Math.random(), no: nextNo, qty: Math.max(1, parseInt(onlyDigits(qty)) || 1), type: cat.label.toUpperCase(), text: desc.text }]);
+    setRows((r) => [...r, { id: Date.now() + Math.random(), no: nextNo, qty: Math.max(1, parseInt(onlyDigits(qty)) || 1), type: cat.label.toUpperCase(), text: desc.text, cols: buildCols(matKey, values, desc) }]);
     setFlash(desc.text);
     setTimeout(() => setFlash(null), 1800);
   };
@@ -383,9 +442,14 @@ export default function App() {
   const renumber = () => setRows(sorted.map((r, i) => ({ ...r, no: i + 1 })));
 
   const exportCSV = () => {
-    const esc = (s) => `"${String(s).replace(/"/g, '""')}"`;
-    const lines = [["ITEM", "QTY", "TYPE", "MATERIAL DESCRIPTION"].join(","),
-      ...sorted.map((r) => [r.no, r.qty, esc(r.type), esc(r.text)].join(","))];
+    const esc = (s) => `"${String(s == null ? "" : s).replace(/"/g, '""')}"`;
+    const header = ["ITEM", "QTY", "MATERIAL TYPE", "SIZE", "MATERIAL / GRADE", "WALL THICKNESS", "CLASS", "STANDARD / SPEC", "ENDS", "COATING", "DESCRIPTION"];
+    const lines = [header.join(","),
+      ...sorted.map((r) => {
+        const c = r.cols || {};
+        const mtype = (r.text.split(",")[0] || "").trim(); // first segment of the description
+        return [r.no, r.qty, esc(mtype), esc(c.size), esc(c.material), esc(c.wt), esc(c.cls), esc(c.standard), esc(c.ends), esc(c.coating), esc(r.text)].join(",");
+      })];
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -403,7 +467,7 @@ export default function App() {
       tool: "PIPELINE MATERIAL DESCRIPTION TOOL",
       rev: "5E-web",
       savedAt: new Date().toISOString(),
-      rows: sorted.map(({ no, qty, type, text }) => ({ no, qty, type, text })),
+      rows: sorted.map(({ no, qty, type, text, cols }) => ({ no, qty, type, text, cols })),
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
@@ -431,6 +495,7 @@ export default function App() {
             qty: Number.isFinite(+r.qty) && +r.qty > 0 ? +r.qty : 1,
             type: typeof r.type === "string" ? r.type : "",
             text: r.text,
+            cols: r.cols && typeof r.cols === "object" ? r.cols : {},
           }));
         if (!cleaned.length) throw new Error("empty");
         setRows(cleaned);
