@@ -23,7 +23,7 @@ const L = {
   RADIUS: ["3R", "5R"],
   ENDS: ["BW", "SW", "THD", "RF", "RTJ"],
   FITTING_STANDARD: ["ASME B16.9", "ASME B16.49", "MSS SP-75", "MSS SP-97"],
-  TYPE_TEE: ["STRAIGHT", "REDUCING", "FLOW"],
+  TYPE_TEE: ["STRAIGHT", "REDUCING", "FLOW", "SPLIT"],
   YESNO: ["Y", "N"],
   TYPE_REDUCER: ["CONCENTRIC", "ECCENTRIC"],
   FLANGE_TYPE: ["WN", "SO", "BLIND", "LAP JOINT", "THREADED", "ORIFICE"],
@@ -126,7 +126,7 @@ const CATALOG = {
     group: "Fittings",
     defaults: { type: "INDUCTION BEND", size: "42", angle: "CTF", radius: "5R", wt: "0.720", std: "MSS SP-75", mat: "A860 WPHY70", ends: "BW", ct: "14-16 MILS", cty: "FBE" },
     fields: [
-      { k: "type", label: "Bend type", type: "select", opts: L.TYPE_ELBOW },
+      { k: "type", label: "Bend type", type: "select", opts: L.TYPE_ELBOW, allowOther: true },
       { k: "size", label: "Size — OD (in)", type: "select", opts: L.PIPE_SIZE.map(String) },
       { k: "angle", label: "Angle (deg)", type: "select", opts: L.ELBOW_ANGLE },
       { k: "radius", label: "Radius", type: "select", opts: L.RADIUS },
@@ -148,7 +148,7 @@ const CATALOG = {
     group: "Fittings",
     defaults: { type: "STRAIGHT", run: "42", branch: "12", barred: "Y", wt: "0.720", std: "MSS SP-75", mat: "A860 WPHY70", ends: "BW", ct: "NONE", cty: "NONE" },
     fields: [
-      { k: "type", label: "Tee type", type: "select", opts: L.TYPE_TEE },
+      { k: "type", label: "Tee type", type: "select", opts: L.TYPE_TEE, allowOther: true },
       { k: "run", label: "Run size (in)", type: "select", opts: L.PIPE_SIZE.map(String) },
       { k: "branch", label: "Branch size (in)", type: "number", step: "0.001" },
       { k: "barred", label: "Barred (Y/N)", type: "select", opts: L.YESNO },
@@ -173,7 +173,7 @@ const CATALOG = {
     group: "Fittings",
     defaults: { type: "CONCENTRIC", large: "36", small: "24", wt: "0.515", std: "ASME B16.9", mat: "A234 WPB", ends: "BW", ct: "12-14 MILS", cty: "FBE" },
     fields: [
-      { k: "type", label: "Reducer type", type: "select", opts: L.TYPE_REDUCER },
+      { k: "type", label: "Reducer type", type: "select", opts: L.TYPE_REDUCER, allowOther: true },
       { k: "large", label: "Large end (in)", type: "select", opts: L.PIPE_SIZE.map(String) },
       { k: "small", label: "Small end (in)", type: "select", opts: L.PIPE_SIZE.map(String) },
       { k: "wt", label: "Wall thickness (in)", type: "number", step: "0.001" },
@@ -193,7 +193,7 @@ const CATALOG = {
     group: "Fittings",
     defaults: { ftype: "BLIND", size: "36", cls: "600", face: "RTJ", cdt: "N", mat: "A105", std: "ASME B16.5", ct: "NONE", cty: "NONE" },
     fields: [
-      { k: "ftype", label: "Flange type", type: "select", opts: L.FLANGE_TYPE },
+      { k: "ftype", label: "Flange type", type: "select", opts: L.FLANGE_TYPE, allowOther: true },
       { k: "size", label: "Size (in)", type: "select", opts: L.PIPE_SIZE.map(String) },
       { k: "cls", label: "Class", type: "select", opts: L.FLANGE_CLASS },
       { k: "face", label: "Face", type: "select", opts: L.FLANGE_FACE },
@@ -213,8 +213,8 @@ const CATALOG = {
     group: "Valves & assemblies",
     defaults: { type: "MAINLINE", vtype: "BALL", size: "42", mfr: "CAMERON T-32", cls: "900", e1: "BW", e2: "RF", op: "ACTUATED" },
     fields: [
-      { k: "type", label: "Service", type: "select", opts: L.TYPE_VALVE },
-      { k: "vtype", label: "Valve type", type: "select", opts: L.VALVE_TYPE },
+      { k: "type", label: "Service", type: "select", opts: L.TYPE_VALVE, allowOther: true },
+      { k: "vtype", label: "Valve type", type: "select", opts: L.VALVE_TYPE, allowOther: true },
       { k: "size", label: "Size (in)", type: "select", opts: L.PIPE_SIZE.map(String) },
       { k: "mfr", label: "Manufacturer & model", type: "text" },
       { k: "cls", label: "Class", type: "select", opts: L.FLANGE_CLASS },
@@ -232,7 +232,7 @@ const CATALOG = {
     group: "Valves & assemblies",
     defaults: { type: "LAUNCHER", fab: "CI", desc: `CAMERON 42${IN} BALL, 2-12${IN} PLUG BLOW DOWN`, cls: "600", pup: "5" },
     fields: [
-      { k: "type", label: "Assembly type", type: "select", opts: L.ASSEMBLY_TYPE },
+      { k: "type", label: "Assembly type", type: "select", opts: L.ASSEMBLY_TYPE, allowOther: true },
       { k: "fab", label: "Fabricator", type: "text" },
       { k: "desc", label: "Component description", type: "text" },
       { k: "cls", label: "Class", type: "select", opts: L.FLANGE_CLASS },
@@ -246,7 +246,7 @@ const CATALOG = {
     group: "Field materials",
     defaults: { type: "GEOTEXTILE WEIGHT BAG", spacing: "12.5" },
     fields: [
-      { k: "type", label: "Type", type: "select", opts: L.BUOYANCY_TYPE },
+      { k: "type", label: "Type", type: "select", opts: L.BUOYANCY_TYPE, allowOther: true },
       { k: "spacing", label: "Spacing (ft)", type: "number", step: "0.5" },
     ],
     describe: (v) => ({ text: `BUOYANCY CONTROL, ${v.type} @ ${v.spacing}' SPACING` }),
@@ -257,7 +257,7 @@ const CATALOG = {
     group: "Field materials",
     defaults: { style: "ABOVE GRADE POST", wires: "4" },
     fields: [
-      { k: "style", label: "Style", type: "select", opts: L.CPTS_STYLE },
+      { k: "style", label: "Style", type: "select", opts: L.CPTS_STYLE, allowOther: true },
       { k: "wires", label: "Number of wires", type: "number", min: "1", max: "11" },
     ],
     describe: (v) => {
@@ -282,7 +282,7 @@ const CATALOG = {
     group: "Field materials",
     defaults: { mount: "DIRECT BURIAL", rating: "5KA" },
     fields: [
-      { k: "mount", label: "Mounting", type: "select", opts: L.DECOUPLER_MOUNT },
+      { k: "mount", label: "Mounting", type: "select", opts: L.DECOUPLER_MOUNT, allowOther: true },
       { k: "rating", label: "Fault rating", type: "select", opts: L.DECOUPLER_RATING },
     ],
     describe: (v) => ({ text: `AC DECOUPLER, SOLID STATE, ${v.mount}, ${v.rating}` }),
@@ -293,8 +293,8 @@ const CATALOG = {
     group: "Field materials",
     defaults: { bed: "DEEP WELL", anode: "HSCI", qty: "12" },
     fields: [
-      { k: "bed", label: "Bed type", type: "select", opts: L.BED_TYPE },
-      { k: "anode", label: "Anode type", type: "select", opts: L.ANODE_TYPE },
+      { k: "bed", label: "Bed type", type: "select", opts: L.BED_TYPE, allowOther: true },
+      { k: "anode", label: "Anode type", type: "select", opts: L.ANODE_TYPE, allowOther: true },
       { k: "qty", label: "Anode quantity", type: "number" },
     ],
     describe: (v) => ({ text: `ANODE BED, ${v.bed}, ${v.anode} ANODES, QTY ${v.qty}` }),
@@ -305,7 +305,7 @@ const CATALOG = {
     group: "Field materials",
     defaults: { mat: "COPPER CLAD STEEL", dia: `3/4${IN}`, len: "10'" },
     fields: [
-      { k: "mat", label: "Material", type: "select", opts: L.ROD_MATERIAL },
+      { k: "mat", label: "Material", type: "select", opts: L.ROD_MATERIAL, allowOther: true },
       { k: "dia", label: "Diameter", type: "select", opts: L.ROD_DIA },
       { k: "len", label: "Length", type: "select", opts: L.ROD_LEN },
     ],
@@ -340,6 +340,23 @@ export default function App() {
       const dep = cat.fields.find((f) => f.optsBy && f.optsBy.dep === k);
       if (dep) {
         const opts = dep.optsBy.map[v] || [];
+        if (!opts.includes(next[dep.k])) next[dep.k] = opts[0] || "";
+      }
+      return next;
+    });
+  };
+
+  // dropdown change: handle the OTHER sentinel, otherwise behave like setVal
+  const selectOpt = (f, val) => {
+    if (f.allowOther && val === "OTHER") {
+      setValues((prev) => ({ ...prev, [f.k + "__o"]: true, [f.k]: "" }));
+      return;
+    }
+    setValues((prev) => {
+      const next = { ...prev, [f.k]: val, [f.k + "__o"]: false };
+      const dep = cat.fields.find((x) => x.optsBy && x.optsBy.dep === f.k);
+      if (dep) {
+        const opts = dep.optsBy.map[val] || [];
         if (!opts.includes(next[dep.k])) next[dep.k] = opts[0] || "";
       }
       return next;
@@ -469,13 +486,21 @@ export default function App() {
           <div className="fields">
             {cat.fields.filter((f) => !f.showIf || f.showIf(values)).map((f) => {
               const opts = f.optsBy ? (f.optsBy.map[values[f.optsBy.dep]] || []) : f.opts;
+              const isOther = !!values[f.k + "__o"];
               return (
                 <label key={f.k} className="field">
                   <span className="field-label">{f.label}</span>
                   {f.type === "select" ? (
-                    <select value={values[f.k]} onChange={(e) => setVal(f.k, e.target.value)}>
-                      {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
+                    <>
+                      <select value={isOther ? "OTHER" : values[f.k]} onChange={(e) => selectOpt(f, e.target.value)}>
+                        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+                        {f.allowOther && <option value="OTHER">OTHER…</option>}
+                      </select>
+                      {isOther && (
+                        <input className="other-input" type="text" autoFocus placeholder="Enter value"
+                          value={values[f.k]} onChange={(e) => setVal(f.k, e.target.value.toUpperCase())} />
+                      )}
+                    </>
                   ) : (
                     <input type={f.type} step={f.step} min={f.min} max={f.max} value={values[f.k]} placeholder={f.hint ? "auto" : ""} onChange={(e) => setVal(f.k, e.target.value)} />
                   )}
@@ -607,6 +632,8 @@ const CSS = `
 .field select,.field input,.qty-field input{font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:#fff;color:var(--ink)}
 .field select:focus,.field input:focus,.qty-field input:focus,.no-input:focus{outline:2px solid var(--safety);outline-offset:1px}
 .field-hint{font-size:11px;color:var(--ink-2)}
+.other-input{margin-top:5px;font:inherit;padding:7px 9px;border:1px solid var(--safety);border-radius:5px;background:#fff;color:var(--ink)}
+.other-input:focus{outline:2px solid var(--safety);outline-offset:1px}
 
 .calc-line{margin-top:12px;font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-2);background:#f4f6f7;border-left:3px solid var(--steel);padding:8px 10px;border-radius:0 4px 4px 0}
 .calc-override{color:var(--safety-dark);font-weight:600}
